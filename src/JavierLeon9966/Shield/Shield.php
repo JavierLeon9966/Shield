@@ -78,7 +78,7 @@ final class Shield extends PluginBase implements Listener{
 			and $entity->getGenericFlag(Entity::DATA_FLAG_BLOCKING)
 			and ($entity->getInventory()->getItemInHand() instanceof ShieldItem
 			or Offhand::getInstance()->getOffhandInventory($entity)->getItem(0) instanceof ShieldItem)
-			and $entity->canInteract($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager, 8)
+			and $entity->canInteract($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager, 8, 0)
 		){
 			$entity->getLevel()->broadcastLevelSoundEvent($entity, LevelSoundEventPacket::SOUND_ITEM_SHIELD_BLOCK);
 
@@ -99,6 +99,10 @@ final class Shield extends PluginBase implements Listener{
 					$shield->applyDamage($damage);
 					$entity->getInventory()->setItemInHand($shield);
 				}
+			}
+
+			if($shield->isBroken()){
+				$entity->getLevel()->broadcastLevelSoundEvent($entity, LevelSoundEventPacket::SOUND_BREAK);
 			}
 
 			if(!$event instanceof EntityDamageByChildEntityEvent and $damager instanceof Living){
