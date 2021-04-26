@@ -9,7 +9,7 @@ use alvin0319\Offhand\Offhand;
 use pocketmine\block\BlockIds;
 use pocketmine\entity\{Effect, Entity, Living};
 use pocketmine\event\Listener;
-use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageByEntityEvent};
+use pocketmine\event\entity\{EntityDamageEvent, EntityDamageByChildEntityEvent, EntityDamageByEntityEvent};
 use pocketmine\event\player\{PlayerAnimationEvent, PlayerToggleSneakEvent};
 use pocketmine\item\{Axe, Item, ItemFactory};
 use pocketmine\plugin\PluginBase;
