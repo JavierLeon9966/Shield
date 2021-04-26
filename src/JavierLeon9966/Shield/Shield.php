@@ -9,7 +9,7 @@ use alvin0319\Offhand\Offhand;
 use pocketmine\block\BlockIds;
 use pocketmine\entity\{Effect, Entity, Living};
 use pocketmine\event\Listener;
-use pocketmine\event\entity\{EntityDamageEvent, EntityDamageByChildEntityEvent, EntityDamageByEntityEvent};
+use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageByEntityEvent};
 use pocketmine\event\player\{PlayerAnimationEvent, PlayerToggleSneakEvent};
 use pocketmine\item\{Axe, Item, ItemFactory};
 use pocketmine\plugin\PluginBase;
@@ -78,17 +78,16 @@ final class Shield extends PluginBase implements Listener{
 			and $entity->getGenericFlag(Entity::DATA_FLAG_BLOCKING)
 			and ($entity->getInventory()->getItemInHand() instanceof ShieldItem
 			or Offhand::getInstance()->getOffhandInventory($entity)->getItem(0) instanceof ShieldItem)
-			and ($entity->canInteract($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager, 8)
-			or $event->getCause() == EntityDamageEvent::CAUSE_ENTITY_EXPLOSION)
+			and $entity->canInteract($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager, 8)
 		){
 			$entity->getLevel()->broadcastLevelSoundEvent($entity, LevelSoundEventPacket::SOUND_ITEM_SHIELD_BLOCK);
 
-			$damage = (int)2*($event->getBaseDamage()+array_sum([
+			$damage = (int)(2*($event->getBaseDamage()+array_sum([
 				$event->getModifier(EntityDamageEvent::MODIFIER_STRENGTH),
 				$event->getModifier(EntityDamageEvent::MODIFIER_WEAKNESS),
 				$event->getModifier(EntityDamageEvent::MODIFIER_CRITICAL),
 				$event->getModifier(EntityDamageEvent::MODIFIER_WEAPON_ENCHANTMENTS)
-			]));
+			])));
 
 			$shield = Offhand::getInstance()->getOffhandInventory($entity)->getItem(0);
 			if($shield instanceof ShieldItem){
