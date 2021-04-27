@@ -5,13 +5,9 @@ declare(strict_types = 1);
 namespace JavierLeon9966\Shield\item;
 
 use pocketmine\block\Block;
-use pocketmine\item\Durable;
+use pocketmine\item\{Durable, ItemIdentifier, ItemIds};
 
 class Shield extends Durable{
-
-	public function __construct(int $meta = 0){
-		parent::__construct(self::SHIELD, $meta, 'Shield');
-	}
 
 	public function getMaxStackSize(): int{
 		return 1;
@@ -22,7 +18,7 @@ class Shield extends Durable{
 	}
 
 	public function onDestroyBlock(Block $block): bool{
-		if($block->getHardness() > 0){
+		if(!$block->getBreakInfo()->breaksInstantly()){
 			return $this->applyDamage(2);
 		}
 		return false;

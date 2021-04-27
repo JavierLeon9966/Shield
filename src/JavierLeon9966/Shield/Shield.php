@@ -7,24 +7,29 @@ namespace JavierLeon9966\Shield;
 use alvin0319\Offhand\Offhand;
 
 use pocketmine\block\BlockIds;
-use pocketmine\entity\{Effect, Entity, Living};
+use pocketmine\entity\{Entity, Living, VanillaEffects};
 use pocketmine\event\Listener;
 use pocketmine\event\entity\{EntityDamageEvent, EntityDamageByChildEntityEvent, EntityDamageByEntityEvent};
+use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\event\player\{PlayerAnimationEvent, PlayerToggleSneakEvent};
-use pocketmine\item\{Axe, Item, ItemFactory};
+use pocketmine\inventory\CreativeInventory;
+use pocketmine\item\{ItemIdentifier, ItemIds, ItemFactory};
 use pocketmine\plugin\PluginBase;
-use pocketmine\Player;
-use pocketmine\network\mcpe\protocol\{AnimatePacket, LevelSoundEventPacket};
+use pocketmine\player\Player;
+use pocketmine\network\mcpe\protocol\AnimatePacket;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataFlags;
 use pocketmine\scheduler\ClosureTask;
+use pocketmine\world\sound\ItemBreakSound;
 
 use JavierLeon9966\Shield\item\Shield as ShieldItem;
+use JavierLeon9966\Shield\sound\ShieldBlockSound;
 
 final class Shield extends PluginBase implements Listener{
 	private $cooldowns = [];
 
 	public function onEnable(): void{
-		ItemFactory::registerItem(new ShieldItem);
-		Item::addCreativeItem(Item::get(Item::SHIELD));
+		ItemFactory::getInstance()->register(new ShieldItem(new ItemIdentifier(ItemIds::SHIELD, 0), 'Shield'));
+		CreativeInventory::getInstance()->add(ItemFactory::getInstance()->get(ItemIds::SHIELD));
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
 
@@ -32,25 +37,25 @@ final class Shield extends PluginBase implements Listener{
 	 * @priority MONITOR
 	 * @ignoreCancelled
 	 */
-	public function onPlayerAnimation(PlayerAnimationEvent $event): void{
-		$player = $event->getPlayer();
-		if($event->getAnimationType() == AnimatePacket::ACTION_SWING_ARM){
+	public function onDataPacketReceive(DataPacketReceiveEvent $event): void{
+		$player = $event->getOrigin()->getPlayer();
+		if($event->getPacket() instanceof AnimatePacket and $event->getPacket()->action === AnimatePacket::ACTION_SWING_ARM){
 			$ticks = 6;
 
-			if($player->hasEffect(Effect::HASTE) and $player->getEffect(Effect::HASTE)->getEffectLevel() > 1){
-				$ticks -= $player->getEffect(Effect::HASTE)->getEffectLevel();
-			}elseif($player->hasEffect(Effect::FATIGUE)){
-				$ticks += 2*$player->getEffect(Effect::FATIGUE)->getEffectLevel();
+			if($player->getEffects()->has(VanillaEffects::HASTE()) and $player->getEffects()->get(VanillaEffects::HASTE())->getEffectLevel() > 1){
+				$ticks -= $player->getEffects()->get(VanillaEffects::HASTE())->getEffectLevel();
+			}elseif($player->getEffects()->has(VanillaEffects::MINING_FATIGUE())){
+				$ticks += 2*$player->getEffects()->get(VanillaEffects::MINING_FATIGUE())->getEffectLevel();
 			}
 
 			if($ticks <= 0) return;
 
-			$player->setGenericFlag(Entity::DATA_FLAG_BLOCKING, false);
-			$this->cooldowns[$player->getRawUniqueId()] = true;
+			$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, false);
+			$this->cooldowns[$player->getUniqueId()->getBytes()] = true;
 
 			$this->getScheduler()->scheduleDelayedTask(new ClosureTask(function() use($player): void{
-				$player->setGenericFlag(Entity::DATA_FLAG_BLOCKING, $player->isSneaking());
-				unset($this->cooldowns[$player->getRawUniqueId()]);
+				$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, $player->isSneaking());
+				unset($this->cooldowns[$player->getUniqueId()->getBytes()]);
 			}), $ticks);
 		}
 	}
@@ -60,8 +65,8 @@ final class Shield extends PluginBase implements Listener{
 	 * @ignoreCancelled
 	 */
 	public function onPlayerToggleSneak(PlayerToggleSneakEvent $event): void{
-		if(!isset($this->cooldowns[$event->getPlayer()->getRawUniqueId()])){
-			$event->getPlayer()->setGenericFlag(Entity::DATA_FLAG_BLOCKING, $event->isSneaking());
+		if(!isset($this->cooldowns[$event->getPlayer()->getUniqueId()->getBytes()])){
+			$event->getPlayer()->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, $event->isSneaking());
 		}
 	}
 
@@ -75,12 +80,12 @@ final class Shield extends PluginBase implements Listener{
 		if(!$damager instanceof Entity) return;
 		if($entity instanceof Player
 			and $event->canBeReducedByArmor()
-			and $entity->getGenericFlag(Entity::DATA_FLAG_BLOCKING)
+			and $entity->getNetworkProperties()->getGenericFlag(EntityMetadataFlags::DATA_FLAG_BLOCKING)
 			and ($entity->getInventory()->getItemInHand() instanceof ShieldItem
 			or Offhand::getInstance()->getOffhandInventory($entity)->getItem(0) instanceof ShieldItem)
-			and $entity->canInteract($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager, 8, 0)
+			and $entity->canInteract($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager->getPosition(), 8, 0)
 		){
-			$entity->getLevel()->broadcastLevelSoundEvent($entity, LevelSoundEventPacket::SOUND_ITEM_SHIELD_BLOCK);
+			$entity->broadcastSound(new ShieldBlockSound);
 
 			$damage = (int)(2*($event->getBaseDamage()+array_sum([
 				$event->getModifier(EntityDamageEvent::MODIFIER_STRENGTH),
@@ -102,16 +107,16 @@ final class Shield extends PluginBase implements Listener{
 			}
 
 			if($shield->isBroken()){
-				$entity->getLevel()->broadcastLevelSoundEvent($entity, LevelSoundEventPacket::SOUND_BREAK);
+				$entity->broadcastSound(new ItemBreakSound);
 			}
 
 			if(!$event instanceof EntityDamageByChildEntityEvent and $damager instanceof Living){
-				$deltaX = $damager->x - $entity->x;
-				$deltaZ = $damager->z - $entity->z;
-				$damager->knockBack($entity, 0, $deltaX, $deltaZ, 0.8);
+				$deltaX = $damager->getPosition()->x - $entity->getPosition()->x;
+				$deltaZ = $damager->getPosition()->z - $entity->getPosition()->z;
+				$damager->knockBack($deltaX, $deltaZ, 0.8);
 			}
 
-			$event->setCancelled();
+			$event->cancel();
 		}
 	}
 }
