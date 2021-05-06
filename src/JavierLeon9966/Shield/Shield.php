@@ -4,10 +4,7 @@ declare(strict_types = 1);
 
 namespace JavierLeon9966\Shield;
 
-use alvin0319\Offhand\Offhand;
-
-use pocketmine\block\BlockIds;
-use pocketmine\entity\{Entity, Living, VanillaEffects};
+use pocketmine\entity\{Entity, Human, Living, VanillaEffects};
 use pocketmine\event\Listener;
 use pocketmine\event\entity\{EntityDamageEvent, EntityDamageByChildEntityEvent, EntityDamageByEntityEvent};
 use pocketmine\event\server\DataPacketReceiveEvent;
@@ -15,7 +12,6 @@ use pocketmine\event\player\{PlayerAnimationEvent, PlayerToggleSneakEvent};
 use pocketmine\inventory\CreativeInventory;
 use pocketmine\item\{ItemIdentifier, ItemIds, ItemFactory};
 use pocketmine\plugin\PluginBase;
-use pocketmine\player\Player;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataFlags;
 use pocketmine\scheduler\ClosureTask;
@@ -28,8 +24,9 @@ final class Shield extends PluginBase implements Listener{
 	private $cooldowns = [];
 
 	public function onEnable(): void{
-		ItemFactory::getInstance()->register(new ShieldItem(new ItemIdentifier(ItemIds::SHIELD, 0), 'Shield'));
-		CreativeInventory::getInstance()->add(ItemFactory::getInstance()->get(ItemIds::SHIELD));
+		$itemFactory = ItemFactory::getInstance();
+		$itemFactory->register(new ShieldItem(new ItemIdentifier(ItemIds::SHIELD, 0), 'Shield'));
+		CreativeInventory::getInstance()->add($itemFactory->get(ItemIds::SHIELD));
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
 
@@ -39,13 +36,15 @@ final class Shield extends PluginBase implements Listener{
 	 */
 	public function onDataPacketReceive(DataPacketReceiveEvent $event): void{
 		$player = $event->getOrigin()->getPlayer();
-		if($event->getPacket() instanceof AnimatePacket and $event->getPacket()->action === AnimatePacket::ACTION_SWING_ARM){
+		$packet = $event->getPacket();
+		if($packet instanceof AnimatePacket and $packet->action === AnimatePacket::ACTION_SWING_ARM){
 			$ticks = 6;
 
-			if($player->getEffects()->has(VanillaEffects::HASTE()) and $player->getEffects()->get(VanillaEffects::HASTE())->getEffectLevel() > 1){
-				$ticks -= $player->getEffects()->get(VanillaEffects::HASTE())->getEffectLevel();
-			}elseif($player->getEffects()->has(VanillaEffects::MINING_FATIGUE())){
-				$ticks += 2*$player->getEffects()->get(VanillaEffects::MINING_FATIGUE())->getEffectLevel();
+			$effects = $player->getEffects();
+			if($effects->has(VanillaEffects::HASTE()) and $effects->get(VanillaEffects::HASTE())->getEffectLevel() > 1){
+				$ticks -= $effects->get(VanillaEffects::HASTE())->getEffectLevel();
+			}elseif($effects->has(VanillaEffects::MINING_FATIGUE())){
+				$ticks += 2*$effects->get(VanillaEffects::MINING_FATIGUE())->getEffectLevel();
 			}
 
 			if($ticks <= 0) return;
@@ -65,8 +64,9 @@ final class Shield extends PluginBase implements Listener{
 	 * @ignoreCancelled
 	 */
 	public function onPlayerToggleSneak(PlayerToggleSneakEvent $event): void{
-		if(!isset($this->cooldowns[$event->getPlayer()->getUniqueId()->getBytes()])){
-			$event->getPlayer()->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, $event->isSneaking());
+		$player = $event->getPlayer();
+		if(!isset($this->cooldowns[$player->getUniqueId()->getBytes()])){
+			$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, $event->isSneaking());
 		}
 	}
 
@@ -75,14 +75,19 @@ final class Shield extends PluginBase implements Listener{
 	 * @ignoreCancelled
 	 */
 	public function onEntityDamageByEntity(EntityDamageByEntityEvent $event): void{
-		$entity = $event->getEntity();
 		$damager = $event->getDamager();
+		$entity = $event->getEntity();
+
+		$inventory = $entity->getInventory();
+		$offhandInventory = $entity->getOffHandInventory();
+
 		if(!$damager instanceof Entity) return;
-		if($entity instanceof Player
+
+		if($entity instanceof Human
 			and $event->canBeReducedByArmor()
 			and $entity->getNetworkProperties()->getGenericFlag(EntityMetadataFlags::DATA_FLAG_BLOCKING)
-			and ($entity->getInventory()->getItemInHand() instanceof ShieldItem
-			or Offhand::getInstance()->getOffhandInventory($entity)->getItem(0) instanceof ShieldItem)
+			and ($inventory->getItemInHand() instanceof ShieldItem
+			or $offhandInventory->getItem(0) instanceof ShieldItem)
 			and $entity->canInteract($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager->getPosition(), 8, 0)
 		){
 			$entity->broadcastSound(new ShieldBlockSound);
@@ -94,15 +99,15 @@ final class Shield extends PluginBase implements Listener{
 				$event->getModifier(EntityDamageEvent::MODIFIER_WEAPON_ENCHANTMENTS)
 			])));
 
-			$shield = Offhand::getInstance()->getOffhandInventory($entity)->getItem(0);
+			$shield = $offhandInventory->getItem(0);
 			if($shield instanceof ShieldItem){
 				$shield->applyDamage($damage);
-				Offhand::getInstance()->getOffhandInventory($entity)->setItem(0, $shield);
+				$offhandInventory->setItem(0, $shield);
 			}else{
-				$shield = $entity->getInventory()->getItemInHand();
+				$shield = $inventory->getItemInHand();
 				if($shield instanceof ShieldItem){
 					$shield->applyDamage($damage);
-					$entity->getInventory()->setItemInHand($shield);
+					$inventory->setItemInHand($shield);
 				}
 			}
 

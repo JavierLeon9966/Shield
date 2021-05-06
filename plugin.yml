@@ -1,8 +1,7 @@
 name: Shield
-depend: OffHand
 main: JavierLeon9966\Shield\Shield
 author: JavierLeon9966
 version: 1.0.0
 api: 4.0.0
-mcpe-protocol: [390, 407, 408, 419, 422, 428, 431]
+mcpe-protocol: 431
 description: A PocketMine-MP plugin which adds functionable shields
