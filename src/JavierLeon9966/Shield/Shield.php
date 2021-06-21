@@ -25,7 +25,11 @@ final class Shield extends PluginBase implements Listener{
 	public function onEnable(): void{
 		ItemFactory::registerItem(new ShieldItem);
 		Item::addCreativeItem(Item::get(Item::SHIELD));
+
+                Item::initCreativeItems();
+
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+
 	}
 
 	/**
