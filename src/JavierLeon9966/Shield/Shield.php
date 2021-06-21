@@ -23,8 +23,8 @@ final class Shield extends PluginBase implements Listener{
 	private $cooldowns = [];
 
 	public function onEnable(): void{
-		ItemFactory::registerItem(new ShieldItem);
-		Item::addCreativeItem(Item::get(Item::SHIELD));
+		ItemFactory::registerItem(new Item(421, 0,"Name Tag"), true);
+		Item::initCreativeItems();
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
 
