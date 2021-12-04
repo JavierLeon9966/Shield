@@ -7,7 +7,7 @@ namespace JavierLeon9966\Shield;
 use JavierLeon9966\Shield\item\Shield as ShieldItem;
 use JavierLeon9966\Shield\sound\ShieldBlockSound;
 
-use pocketmime\entity\effect\VanillaEffects;
+use pocketmine\entity\effect\VanillaEffects;
 use pocketmine\entity\{Entity, Living};
 use pocketmine\event\Listener;
 use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageEvent, EntityDamageByEntityEvent};
@@ -99,7 +99,8 @@ final class Shield extends PluginBase implements Listener{
 		if(!$damager instanceof Entity) return;
 
 		if($event->canBeReducedByArmor()
-			and $entity->getNetworkProperties()->getGenericFlag(EntityMetadataFlags::DATA_FLAG_BLOCKING)
+			and !isset($this->cooldowns[$entity->getUniqueId()->getBytes()])
+			and $entity->isSneaking()
 			and ($inventory->getItemInHand() instanceof ShieldItem
 			or $offhandInventory->getItem(0) instanceof ShieldItem)
 			and $entity->canInteract(($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager)->getPosition(), 8, 0)
@@ -125,7 +126,7 @@ final class Shield extends PluginBase implements Listener{
 				}
 			}
 
-			if($shield->isBroken()){
+			if($shield instanceof ShieldItem and $shield->isBroken()){
 				$entity->broadcastSound(new ItemBreakSound);
 			}
 
