@@ -44,7 +44,7 @@ final class Shield extends PluginBase implements Listener{
 		$this->getScheduler()->scheduleDelayedTask(new ClosureTask(fn() => $this->removeCooldown($player)), $ticks);
 	}
 
-	public function hasCooldown(Player $player): void{
+	public function hasCooldown(Player $player): bool{
 		return isset($this->cooldowns[$player->getUniqueId()->getBytes()]);
 	}
 
