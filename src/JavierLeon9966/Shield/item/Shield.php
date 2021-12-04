@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace JavierLeon9966\Shield\item;
 
 use pocketmine\block\Block;
-use pocketmine\item\{Durable, ItemIdentifier, ItemIds};
+use pocketmine\item\Durable;
 
 class Shield extends Durable{
 
