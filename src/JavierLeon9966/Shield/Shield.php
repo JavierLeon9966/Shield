@@ -8,13 +8,13 @@ use JavierLeon9966\Shield\item\Shield as ShieldItem;
 use JavierLeon9966\Shield\sound\ShieldBlockSound;
 
 use pocketmine\entity\effect\VanillaEffects;
-use pocketmine\entity\{Entity, Living};
+use pocketmine\entity\{Entity, Human, Living};
 use pocketmine\event\Listener;
 use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageEvent, EntityDamageByEntityEvent};
 use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\event\player\PlayerToggleSneakEvent;
 use pocketmine\inventory\CreativeInventory;
-use pocketmine\item\{ItemIdentifier, ItemIds, ItemFactory, StringToItemParser};
+use pocketmine\item\{Axe, ItemIdentifier, ItemIds, ItemFactory, StringToItemParser};
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
@@ -105,6 +105,10 @@ final class Shield extends PluginBase implements Listener{
 			or $offhandInventory->getItem(0) instanceof ShieldItem)
 			and $entity->canInteract(($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager)->getPosition(), 8, 0)
 		){
+			if($damager instanceof Human && $damager->getInventory()->getItemInHand() instanceof Axe){
+				$this->setCooldown($entity, 5 * 20);
+			}
+
 			$entity->broadcastSound(new ShieldBlockSound);
 
 			$damage = (int)(2*($event->getBaseDamage()+array_sum([
