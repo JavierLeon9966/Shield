@@ -14,7 +14,7 @@ use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageEvent, 
 use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\event\player\PlayerToggleSneakEvent;
 use pocketmine\inventory\CreativeInventory;
-use pocketmine\item\{Axe, ItemIdentifier, ItemIds, ItemFactory, StringToItemParser};
+use pocketmine\item\{Axe, ItemIdentifier, ItemFactory, ItemTypeIds, StringToItemParser};
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
@@ -30,7 +30,7 @@ final class Shield extends PluginBase implements Listener{
 	private array $cooldowns = [];
 
 	public function onEnable(): void{
-		$shield = new ShieldItem(new ItemIdentifier(ItemIds::SHIELD, 0), 'Shield');
+		$shield = new ShieldItem(new ItemIdentifier(ItemTypeIds::FIRST_UNUSED_ITEM_ID), 'Shield');
 		ItemFactory::getInstance()->register($shield);
 		CreativeInventory::getInstance()->add($shield);
 		StringToItemParser::getInstance()->register('shield', static fn() => clone $shield);
