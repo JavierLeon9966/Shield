@@ -7,6 +7,7 @@ namespace JavierLeon9966\Shield;
 use JavierLeon9966\Shield\item\Shield as ShieldItem;
 use JavierLeon9966\Shield\sound\ShieldBlockSound;
 
+use pocketmine\block\BlockTypeIds;
 use pocketmine\entity\effect\VanillaEffects;
 use pocketmine\entity\{Entity, Human, Living};
 use pocketmine\event\Listener;
@@ -29,11 +30,16 @@ final class Shield extends PluginBase implements Listener{
 	 */
 	private array $cooldowns = [];
 
+
 	public function onEnable(): void{
-		$shield = new ShieldItem(new ItemIdentifier(ItemTypeIds::FIRST_UNUSED_ITEM_ID), 'Shield');
-		ItemFactory::getInstance()->register($shield);
-		CreativeInventory::getInstance()->add($shield);
-		StringToItemParser::getInstance()->register('shield', static fn() => clone $shield);
+        for($i = ItemTypeIds::FIRST_UNUSED_ITEM_ID; $i < ItemTypeIds::FIRST_UNUSED_ITEM_ID + 256; ++$i){
+            if(!ItemFactory::getInstance()->isRegistered($i)){
+                $shield = new ShieldItem(new ItemIdentifier(ItemTypeIds::FIRST_UNUSED_ITEM_ID), 'Shield');
+                ItemFactory::getInstance()->register($shield);
+                CreativeInventory::getInstance()->add($shield);
+                StringToItemParser::getInstance()->register('shield', static fn() => clone $shield);
+            }
+        }
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}
 
