@@ -34,10 +34,11 @@ final class Shield extends PluginBase implements Listener{
 	public function onEnable(): void{
         for($i = ItemTypeIds::FIRST_UNUSED_ITEM_ID; $i < ItemTypeIds::FIRST_UNUSED_ITEM_ID + 256; ++$i){
             if(!ItemFactory::getInstance()->isRegistered($i)){
-                $shield = new ShieldItem(new ItemIdentifier(ItemTypeIds::FIRST_UNUSED_ITEM_ID), 'Shield');
+                $shield = new ShieldItem(new ItemIdentifier($i), 'Shield');
                 ItemFactory::getInstance()->register($shield);
                 CreativeInventory::getInstance()->add($shield);
                 StringToItemParser::getInstance()->register('shield', static fn() => clone $shield);
+                return;
             }
         }
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
