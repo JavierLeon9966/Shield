@@ -96,7 +96,7 @@ final class Shield extends PluginBase implements Listener{
 	 * @priority HIGHEST
 	 */
 	public function onEntityDamageByEntity(EntityDamageByEntityEvent $event): void{
-		$damager = $event->getDamager();
+		$damager = $event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $event->getDamager();
 		$entity = $event->getEntity();
 		if(!$entity instanceof Player) return;
 
@@ -110,7 +110,7 @@ final class Shield extends PluginBase implements Listener{
 			and $entity->isSneaking()
 			and ($inventory->getItemInHand() instanceof ShieldItem
 			or $offhandInventory->getItem(0) instanceof ShieldItem)
-			and $entity->canInteract(($event instanceof EntityDamageByChildEntityEvent ? $event->getChild() : $damager)->getPosition(), 8, 0)
+			and $entity->canInteract($damager->getPosition(), 8, 0)
 		){
 			if($damager instanceof Human && $damager->getInventory()->getItemInHand() instanceof Axe){
 				$this->setCooldown($entity, 5 * 20);
@@ -141,7 +141,7 @@ final class Shield extends PluginBase implements Listener{
 				$entity->broadcastSound(new ItemBreakSound);
 			}
 
-			if(!$event instanceof EntityDamageByChildEntityEvent and $damager instanceof Living){
+			if($damager instanceof Living){
 				$damagerPos = $damager->getPosition();
 				$entityPos = $entity->getPosition();
 				$deltaX = $damagerPos->x - $entityPos->x;
