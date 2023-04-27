@@ -32,4 +32,5 @@ mcpe-protocol:
  - 560
  - 567
  - 575
+ - 582
 description: A PocketMine-MP plugin which adds functionable shields
