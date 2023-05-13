@@ -15,6 +15,7 @@ use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\event\player\PlayerToggleSneakEvent;
 use pocketmine\inventory\CreativeInventory;
 use pocketmine\item\{Axe, ItemIdentifier, ItemIds, ItemFactory, StringToItemParser};
+use pocketmine\network\mcpe\protocol\PlayerStartItemCooldownPacket;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
@@ -38,10 +39,18 @@ final class Shield extends PluginBase implements Listener{
 	}
 
 	public function setCooldown(Player $player, int $ticks): void{
-		$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, false);
+		$scheduler = $this->getScheduler();
+		if(isset($this->cooldowns[$player->getUniqueId()->getBytes()])){
+			return;
+		}
+		$networkProperties = $player->getNetworkProperties();
+		if($player->isSneaking()){
+			$networkProperties->setGenericFlag(EntityMetadataFlags::BLOCKING, false);
+			$networkProperties->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, true);
+			$scheduler->scheduleTask(new ClosureTask(static fn() => $networkProperties->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, false)));
+		}
 		$this->cooldowns[$player->getUniqueId()->getBytes()] = true;
-
-		$this->getScheduler()->scheduleDelayedTask(new ClosureTask(fn() => $this->removeCooldown($player)), $ticks);
+		$scheduler->scheduleDelayedTask(new ClosureTask(fn() => $this->removeCooldown($player)), $ticks);
 	}
 
 	public function hasCooldown(Player $player): bool{
@@ -49,7 +58,15 @@ final class Shield extends PluginBase implements Listener{
 	}
 
 	public function removeCooldown(Player $player): void{
-		$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, $player->isSneaking());
+		if(!isset($this->cooldowns[$player->getUniqueId()->getBytes()])){
+			return;
+		}
+		$networkProperties = $player->getNetworkProperties();
+		if($player->isSneaking()){
+			$networkProperties->setGenericFlag(EntityMetadataFlags::BLOCKING, true);
+			$networkProperties->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, true);
+			$this->getScheduler()->scheduleTask(new ClosureTask(static fn() => $networkProperties->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, false)));
+		}
 		unset($this->cooldowns[$player->getUniqueId()->getBytes()]);
 	}
 
@@ -80,9 +97,13 @@ final class Shield extends PluginBase implements Listener{
 	 */
 	public function onPlayerToggleSneak(PlayerToggleSneakEvent $event): void{
 		$player = $event->getPlayer();
-		if(!isset($this->cooldowns[$player->getUniqueId()->getBytes()])){
-			$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKING, $event->isSneaking());
+		if(isset($this->cooldowns[$player->getUniqueId()->getBytes()])){
+			return;
 		}
+		$networkProperties = $player->getNetworkProperties();
+		$networkProperties->setGenericFlag(EntityMetadataFlags::BLOCKING, $event->isSneaking());
+		$networkProperties->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, true);
+		$this->getScheduler()->scheduleTask(new ClosureTask(static fn() => $networkProperties->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, false)));
 	}
 
 	/**
@@ -106,7 +127,10 @@ final class Shield extends PluginBase implements Listener{
 			and $entity->canInteract($damager->getPosition(), 8, 0)
 		){
 			if($damager instanceof Human && $damager->getInventory()->getItemInHand() instanceof Axe){
-				$this->setCooldown($entity, 5 * 20);
+				$cooldownTicks = 5 * 20; // 5 seconds
+				$this->setCooldown($entity, $cooldownTicks);
+				$entity->getNetworkSession()->sendDataPacket(PlayerStartItemCooldownPacket::create('shield', $cooldownTicks));
+				$entity->broadcastSound(new ItemBreakSound);
 			}
 
 			$entity->broadcastSound(new ShieldBlockSound);
@@ -118,18 +142,31 @@ final class Shield extends PluginBase implements Listener{
 				$event->getModifier(EntityDamageEvent::MODIFIER_WEAPON_ENCHANTMENTS)
 			])));
 
+			$damaged = false;
 			$shield = $offhandInventory->getItem(0);
 			if($shield instanceof ShieldItem){
+				$damaged = $shield->getDamage() !== 0;
 				$shield->applyDamage($damage);
 				$offhandInventory->setItem(0, $shield);
 			}else{
 				$shield = $inventory->getItemInHand();
 				if($shield instanceof ShieldItem){
+					$damaged = $shield->getDamage() !== 0;
 					$shield->applyDamage($damage);
 					$inventory->setItemInHand($shield);
 				}
 			}
 
+			$networkProperties = $entity->getNetworkProperties();
+			$networkProperties->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_SHIELD, true);
+			if($damaged){
+				$networkProperties->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_DAMAGED_SHIELD, true);
+			}
+
+			$this->getScheduler()->scheduleTask(new ClosureTask(static function() use($networkProperties): void{
+				$networkProperties->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_SHIELD, false);
+				$networkProperties->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_DAMAGED_SHIELD, false);
+			}));
 			if($shield instanceof ShieldItem and $shield->isBroken()){
 				$entity->broadcastSound(new ItemBreakSound);
 			}
