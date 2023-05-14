@@ -176,7 +176,7 @@ final class Shield extends PluginBase implements Listener{
 				$entityPos = $entity->getPosition();
 				$deltaX = $damagerPos->x - $entityPos->x;
 				$deltaZ = $damagerPos->z - $entityPos->z;
-				$damager->knockBack($deltaX, $deltaZ, 0.8);
+				$damager->knockBack($deltaX, $deltaZ, 0.587382); //Vanilla shield knock back. I have no idea why is it this specific value
 			}
 
 			$event->cancel();
