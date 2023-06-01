@@ -7,20 +7,22 @@ namespace JavierLeon9966\Shield;
 use JavierLeon9966\Shield\item\Shield as ShieldItem;
 use JavierLeon9966\Shield\sound\ShieldBlockSound;
 
+use pocketmine\data\bedrock\item\ItemTypeNames;
+use pocketmine\data\bedrock\item\SavedItemData;
 use pocketmine\entity\effect\VanillaEffects;
 use pocketmine\entity\{Entity, Human, Living};
 use pocketmine\event\Listener;
 use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageEvent, EntityDamageByEntityEvent};
 use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\event\player\PlayerToggleSneakEvent;
-use pocketmine\inventory\CreativeInventory;
-use pocketmine\item\{Axe, ItemIdentifier, ItemIds, ItemFactory, StringToItemParser};
+use pocketmine\item\{Axe, ItemIdentifier, ItemTypeIds, StringToItemParser};
 use pocketmine\network\mcpe\protocol\PlayerStartItemCooldownPacket;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataFlags;
 use pocketmine\scheduler\ClosureTask;
+use pocketmine\world\format\io\GlobalItemDataHandlers;
 use pocketmine\world\sound\ItemBreakSound;
 
 final class Shield extends PluginBase implements Listener{
@@ -31,9 +33,9 @@ final class Shield extends PluginBase implements Listener{
 	private array $cooldowns = [];
 
 	public function onEnable(): void{
-		$shield = new ShieldItem(new ItemIdentifier(ItemIds::SHIELD, 0), 'Shield');
-		ItemFactory::getInstance()->register($shield);
-		CreativeInventory::getInstance()->add($shield);
+		$shield = new ShieldItem(new ItemIdentifier(ItemTypeIds::newId()), 'Shield');
+		GlobalItemDataHandlers::getDeserializer()->map(ItemTypeNames::SHIELD, static fn() => clone $shield);
+		GlobalItemDataHandlers::getSerializer()->map($shield, static fn() => new SavedItemData(ItemTypeNames::SHIELD));
 		StringToItemParser::getInstance()->register('shield', static fn() => clone $shield);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 	}

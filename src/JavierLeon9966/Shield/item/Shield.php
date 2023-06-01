@@ -6,6 +6,7 @@ namespace JavierLeon9966\Shield\item;
 
 use pocketmine\block\Block;
 use pocketmine\item\Durable;
+use pocketmine\item\Item;
 
 class Shield extends Durable{
 
@@ -17,7 +18,10 @@ class Shield extends Durable{
 		return 337;
 	}
 
-	public function onDestroyBlock(Block $block): bool{
+	/**
+	 * @param Item[] &$returnedItems
+	 */
+	public function onDestroyBlock(Block $block, array &$returnedItems): bool{
 		if(!$block->getBreakInfo()->breaksInstantly()){
 			return $this->applyDamage(2);
 		}
