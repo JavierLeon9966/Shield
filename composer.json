@@ -3,7 +3,7 @@
   "description": "A PocketMine-MP plugin which adds functionable shields",
   "type": "project",
   "minimum-stability": "dev",
-  "license": "GPL-3.0-only",
+  "license": "GPL-3.0-or-later",
   "require": {
     "pocketmine/pocketmine-mp": "^5.0.0"
   },
