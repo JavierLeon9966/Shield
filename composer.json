@@ -2,8 +2,6 @@
   "name": "javierleon9966/shield",
   "description": "A PocketMine-MP plugin which adds functionable shields",
   "type": "project",
-  "minimum-stability": "dev",
-  "prefer-stable": true,
   "license": "GPL-3.0-or-later",
   "require": {
     "pocketmine/pocketmine-mp": "^5.0.0"
