@@ -1,7 +1,7 @@
 name: Shield
 main: JavierLeon9966\Shield\Shield
 author: JavierLeon9966
-version: 1.22.0
+version: 1.23.0
 api: 5.0.0
 mcpe-protocol: [486, 503, 527, 534, 544, 545, 554, 557, 560, 567, 575, 582, 589, 594, 618, 622, 630, 649]
 description: A PocketMine-MP plugin which adds functionable shields
